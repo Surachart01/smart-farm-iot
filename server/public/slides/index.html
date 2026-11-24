@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>สไลด์นำเสนอ · ฟาร์มอัจฉริยะพืชอวบน้ำ</title>
+<meta name="description" content="สไลด์นำเสนอผลงานวิจัย ระบบฟาร์มอัจฉริยะ IoT และการจัดการฐานข้อมูลคลาวด์สำหรับธุรกิจเพาะเลี้ยงพืชอวบน้ำ">
+<meta name="theme-color" content="#0f1f17">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<link rel="preload" as="image" href="img/01.jpg">
+<style>
+:root{
+  --stage:#0f1f17;      /* ห้องฉาย: เขียวป่าเข้มกว่าสไลด์สีเขียวในเด็ค */
+  --stage-2:#152a20;
+  --line:#2a4235;
+  --cream:#f1ece1;      /* สีกระดาษของสไลด์ */
+  --muted:#a7b8ab;
+  --rust:#d0703f;       /* สีส้มอิฐจากเด็ค ปรับให้สว่างพอบนพื้นเข้ม */
+  --rust-deep:#a94a22;
+  --f:"IBM Plex Sans Thai",system-ui,sans-serif;
+  --ease:cubic-bezier(.16,1,.3,1);
+  --bar:60px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--stage);color:var(--cream);font-family:var(--f);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+  background-image:radial-gradient(120% 80% at 50% 45%,var(--stage-2) 0%,var(--stage) 70%)}
+::selection{background:var(--rust);color:var(--stage)}
+button,a{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--rust);outline-offset:3px;border-radius:6px}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+.app{height:100dvh;display:grid;grid-template-rows:var(--bar) 1fr auto;}
+
+/* ---------- แถบบน ---------- */
+.top{display:flex;align-items:center;gap:16px;padding:0 clamp(12px,2.4vw,28px);
+  transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.back{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:600;font-size:14px;
+  padding:8px 14px 8px 10px;border-radius:999px;border:1px solid var(--line);background:rgb(241 236 225 / .04);
+  transition:background .2s,border-color .2s}
+.back:hover{background:rgb(241 236 225 / .1);border-color:#3d5a4a}
+.where{flex:1;min-width:0;text-align:center;font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.where b{color:var(--cream);font-weight:600}
+.count{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted);min-width:64px;text-align:right}
+.count b{color:var(--cream);font-weight:600;font-size:16px}
+
+/* ---------- เวที ---------- */
+.stage{position:relative;display:grid;place-items:center;padding:8px clamp(12px,2.4vw,28px);min-height:0}
+.frame{position:relative;aspect-ratio:16/9;
+  width:min(100%, calc((100dvh - var(--bar) - var(--foot) - 16px) * 16 / 9));
+  border-radius:clamp(4px,.6vw,8px);overflow:hidden;background:var(--cream);
+  box-shadow:0 2px 6px rgb(0 0 0 / .25),0 24px 60px -12px rgb(0 0 0 / .55);
+  outline:1px solid rgb(241 236 225 / .08);outline-offset:0;cursor:pointer;touch-action:pan-y}
+.frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none}
+.frame img.enter{animation:enter .62s var(--ease) both}
+.frame img.leave{animation:leave .38s var(--ease) both}
+@keyframes enter{from{opacity:0;transform:translateX(calc(var(--dir) * 3.5%)) scale(.985);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+@keyframes leave{to{opacity:0;transform:translateX(calc(var(--dir) * -2%)) scale(.99);filter:blur(4px)}}
+/* โซนคลิกซ้าย/ขวา บอกใบ้ด้วยลูกศรตอนชี้ */
+.hint{position:absolute;top:0;bottom:0;width:22%;display:flex;align-items:center;opacity:0;transition:opacity .25s;pointer-events:none;color:var(--stage)}
+.hint.l{left:0;justify-content:flex-start;padding-left:2%;background:linear-gradient(90deg,rgb(15 31 23 / .14),transparent)}
+.hint.r{right:0;justify-content:flex-end;padding-right:2%;background:linear-gradient(270deg,rgb(15 31 23 / .14),transparent)}
+.hint span{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgb(241 236 225 / .92);box-shadow:0 4px 14px rgb(0 0 0 / .18)}
+@media (hover:hover){.frame[data-zone="l"] .hint.l,.frame[data-zone="r"] .hint.r{opacity:1}}
+
+/* ---------- แถบล่าง ---------- */
+.foot{position:relative;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;
+  padding:6px clamp(12px,2.4vw,28px) max(14px,env(safe-area-inset-bottom));transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.app{--foot:76px}
+.nav{display:flex;gap:6px}
+.btn{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;border:1px solid var(--line);
+  background:rgb(241 236 225 / .04);cursor:pointer;transition:background .2s,border-color .2s,transform .15s}
+.btn:hover:not(:disabled){background:rgb(241 236 225 / .1);border-color:#3d5a4a}
+.btn:active:not(:disabled){transform:scale(.95)}
+.btn:disabled{opacity:.32;cursor:default}
+.btn.next{background:var(--cream);color:var(--stage);border-color:var(--cream)}
+.btn.next:hover:not(:disabled){background:#fff;border-color:#fff}
+
+/* รางสไลด์: 21 ช่อง ช่องที่ดูอยู่เป็นสีส้มอิฐ */
+.rail{position:relative;display:flex;gap:4px;height:44px;align-items:center;min-width:0}
+.tick{flex:1;height:44px;border:0;background:none;padding:0;cursor:pointer;position:relative;min-width:6px}
+.tick::before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;border-radius:2px;background:#2d4739;
+  transition:background .3s,transform .3s var(--ease)}
+.tick.seen::before{background:#55745f}
+.tick[aria-current="true"]::before{background:var(--rust);transform:scaleY(2)}
+.tick:hover::before{background:var(--muted)}
+.tick[aria-current="true"]:hover::before{background:var(--rust)}
+.tick:focus-visible{outline-offset:0}
+/* ภาพตัวอย่างเมื่อชี้รางสไลด์ */
+.peek{position:absolute;bottom:52px;width:220px;pointer-events:none;opacity:0;transform:translateY(6px);
+  transition:opacity .18s,transform .25s var(--ease);background:var(--stage-2);border:1px solid var(--line);border-radius:10px;padding:6px;
+  box-shadow:0 12px 32px -8px rgb(0 0 0 / .6)}
+.peek.on{opacity:1;transform:none}
+.peek img{display:block;width:100%;aspect-ratio:16/9;border-radius:5px;background:var(--cream)}
+.peek p{margin:6px 4px 2px;font-size:12.5px;line-height:1.4;color:var(--cream);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.peek p small{color:var(--rust);font-weight:600;font-variant-numeric:tabular-nums;margin-right:6px;font-size:12px}
+
+/* ---------- ภาพรวมทุกสไลด์ ---------- */
+.grid{position:fixed;inset:0;z-index:20;background:rgb(10 22 16 / .97);overflow:auto;
+  padding:clamp(16px,4vw,48px);opacity:0;visibility:hidden;transition:opacity .3s var(--ease),visibility 0s .3s}
+.grid.open{opacity:1;visibility:visible;transition:opacity .3s var(--ease)}
+.grid-head{position:sticky;top:calc(-1 * clamp(16px,4vw,48px));z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1320px;margin:0 auto 24px;padding:clamp(16px,4vw,48px) 0 14px;margin-top:calc(-1 * clamp(16px,4vw,48px));background:linear-gradient(rgb(10 22 16) 82%,rgb(10 22 16 / 0))}
+.grid-head h2{margin:0;font-size:clamp(20px,2.4vw,28px);font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.grid-head p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.cards{list-style:none;margin:0 auto;padding:0;max-width:1320px;display:grid;gap:clamp(14px,2vw,22px);
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr))}
+.card{display:block;width:100%;text-align:left;background:none;border:0;padding:0;cursor:pointer;color:inherit}
+.card .ph{position:relative;display:block;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:var(--cream);
+  box-shadow:0 2px 4px rgb(0 0 0 / .3);outline:2px solid transparent;outline-offset:3px;transition:outline-color .2s,transform .35s var(--ease)}
+.card .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.card:hover .ph{transform:translateY(-3px)}
+.card[aria-current="true"] .ph{outline-color:var(--rust)}
+.card .t{display:flex;gap:8px;margin-top:9px;font-size:13.5px;line-height:1.45}
+.card .t b{color:var(--rust);font-variant-numeric:tabular-nums;font-weight:600;min-width:1.6em}
+.card .t .h{color:var(--cream);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .t small{display:block;color:var(--muted);font-size:12px}
+.card:focus-visible{outline:none}
+.card:focus-visible .ph{outline-color:var(--cream)}
+
+.keys{color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:6px 16px;max-width:1320px;margin:28px auto 0}
+kbd{font-family:var(--f);font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--cream);margin-right:4px}
+
+/* เต็มจอ: ซ่อนแถบเมื่อไม่ขยับเมาส์ */
+.app.idle .top,.app.idle .foot{opacity:0;pointer-events:none}
+.app.idle .top{transform:translateY(-8px)}
+.app.idle .foot{transform:translateY(8px)}
+.app.idle{cursor:none}
+.app.idle .frame{cursor:none}
+:fullscreen .app{--bar:52px}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- มือถือ ---------- */
+@media (max-width:640px){
+  .app{--bar:56px;--foot:132px}
+  .where{display:none}
+  .top{justify-content:space-between}
+  .foot{grid-template-columns:1fr 1fr;grid-template-areas:"rail rail" "prev side";row-gap:10px;padding-top:10px}
+  .rail{grid-area:rail;height:24px;gap:3px}
+  .tick{height:24px;min-width:0}
+  .nav.prevs{grid-area:prev}
+  .nav.side{grid-area:side;justify-content:flex-end}
+  .btn{width:48px;height:48px}
+  .peek{display:none}
+  .hint{display:none}
+}
+@media (max-width:640px) and (orientation:portrait){
+  .stage{align-content:center}
+}
+@media (orientation:landscape) and (max-height:480px){
+  .app{--bar:44px;--foot:56px}
+  .foot{padding-top:2px;padding-bottom:max(6px,env(safe-area-inset-bottom))}
+  .btn{width:40px;height:40px}
+  .where{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .frame img.enter{animation:fade .2s linear both}
+  .frame img.leave{animation:fadeout .15s linear both}
+  @keyframes fade{from{opacity:0}}
+  @keyframes fadeout{to{opacity:0}}
+  .card .ph,.peek{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <a class="back" href="/"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>กลับแดชบอร์ด</a>
+    <div class="where" id="where" aria-hidden="true"></div>
+    <div class="count" aria-live="polite"><span class="sr">สไลด์ที่ </span><b id="cur">1</b> / <span id="tot">21</span></div>
+  </header>
+
+  <main class="stage">
+    <h1 class="sr">สไลด์นำเสนอ ระบบฟาร์มอัจฉริยะ IoT และการจัดการฐานข้อมูลคลาวด์สำหรับธุรกิจเพาะเลี้ยงพืชอวบน้ำ</h1>
+    <div class="frame" id="frame" role="region" aria-roledescription="สไลด์" aria-label="สไลด์นำเสนอ">
+      <img id="img" src="img/01.jpg" alt="" width="1920" height="1080" decoding="async">
+      <div class="hint l" aria-hidden="true"><span><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></span></div>
+      <div class="hint r" aria-hidden="true"><span><svg class="i" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span></div>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <div class="nav prevs">
+      <button class="btn" id="prev" type="button" aria-label="สไลด์ก่อนหน้า"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button class="btn next" id="next" type="button" aria-label="สไลด์ถัดไป"><svg class="i" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+    <nav class="rail" id="rail" aria-label="เลือกสไลด์"></nav>
+    <div class="nav side">
+      <button class="btn" id="gridBtn" type="button" aria-label="ดูสไลด์ทั้งหมด" aria-controls="grid" aria-expanded="false"><svg class="i" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/></svg></button>
+      <button class="btn" id="fsBtn" type="button" aria-label="เต็มจอ"><svg class="i" viewBox="0 0 24 24" id="fsIcon"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    </div>
+    <div class="peek" id="peek" aria-hidden="true"><img alt="" id="peekImg" src="thumb/01.jpg" width="480" height="270"><p id="peekTxt"></p></div>
+  </footer>
+</div>
+
+<section class="grid" id="grid" aria-label="สไลด์ทั้งหมด" aria-hidden="true">
+  <div class="grid-head">
+    <div><h2>สไลด์ทั้งหมด</h2><p>เลือกสไลด์เพื่อไปที่หน้านั้น</p></div>
+    <button class="btn" id="gridClose" type="button" aria-label="ปิดภาพรวม"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <ol class="cards" id="cards"></ol>
+  <p class="keys"><span><kbd>←</kbd><kbd>→</kbd>เปลี่ยนสไลด์</span><span><kbd>F</kbd>เต็มจอ</span><span><kbd>G</kbd>ดูทั้งหมด</span><span><kbd>Esc</kbd>ปิด</span></p>
+</section>
+
+<script>
+// หัวข้อแต่ละสไลด์ (ส่วน, หัวเรื่อง) ดึงจากไฟล์ PDF ต้นฉบับ
+const S = [
+  ["ปกการนำเสนอ","การพัฒนาระบบฟาร์มอัจฉริยะ IoT และการจัดการฐานข้อมูลคลาวด์สำหรับธุรกิจเพาะเลี้ยงพืชอวบน้ำ"],
+  ["ความเป็นมาและความสำคัญ","ปัญหาของผู้เพาะเลี้ยงพืชอวบน้ำรายย่อย"],
+  ["วัตถุประสงค์และสมมติฐาน","งานวิจัยนี้ต้องการตอบอะไร"],
+  ["แนวคิดและทฤษฎีที่เกี่ยวข้อง","4 แนวคิดที่ใช้ออกแบบระบบ"],
+  ["การออกแบบและพัฒนาระบบ","สถาปัตยกรรมระบบ 3 ชั้น"],
+  ["ฮาร์ดแวร์ของชุดต้นแบบ","อุปกรณ์หลักและต้นทุน"],
+  ["ภาพจริงของชุดต้นแบบ","ชิ้นส่วนที่ติดตั้งจริงในโรงเรือนจำลอง"],
+  ["เกณฑ์ควบคุมตามหลัก Soak and Dry","ชั้นความปลอดภัยป้องกันการรดน้ำเกิน"],
+  ["ปัญญาประดิษฐ์ Gemini Flash-Lite","AI เป็นผู้แนะนำ ไม่ใช่ผู้ควบคุม"],
+  ["ผลทดสอบ AI แนะนำค่าเกณฑ์","หน้าจอคำแนะนำจาก AI ขณะทดสอบจริง"],
+  ["วิธีดำเนินการวิจัย","การวิจัยและพัฒนา (R&D) 6 ขั้นตอน"],
+  ["ภาพการดำเนินงานวิจัย","การสร้างชุดต้นแบบโดยคณะผู้วิจัย"],
+  ["ประชากรและกลุ่มตัวอย่าง","ทดลองเปรียบเทียบ 2 ชุด ชุดละ 10 ต้น"],
+  ["ผลการวิจัย ตอนที่ 1","ชุดต้นแบบที่พัฒนาได้"],
+  ["ผลการทดสอบการทำงาน","ทำงานถูกต้องครบ 9 ฟังก์ชัน ผ่าน 10 จาก 10 ครั้ง"],
+  ["ผลการวิจัย ตอนที่ 2 · เสถียรภาพการส่งข้อมูล","ส่งข้อมูลขึ้นคลาวด์ได้เสถียรตลอด 14 วัน"],
+  ["ผลการวิจัย ตอนที่ 3 · การทดลองเพาะเลี้ยง 14 วัน","รักษาความชื้นในช่วงเหมาะสมได้เกือบตลอดเวลา"],
+  ["ผลการวิจัย ตอนที่ 4","ผลการประเมินโดยผู้เชี่ยวชาญ 3 คน"],
+  ["สรุปผลการวิจัย","ผลตามสมมติฐาน"],
+  ["ข้อเสนอแนะ","สิ่งที่ควรพัฒนาต่อ"],
+  ["ถาม – ตอบ","ขอบคุณครับ"],
+];
+const N = S.length, pad = n => String(n).padStart(2,"0");
+const src = i => `img/${pad(i+1)}.jpg`, th = i => `thumb/${pad(i+1)}.jpg`;
+const $ = id => document.getElementById(id);
+const app=$("app"), frame=$("frame"), rail=$("rail"), grid=$("grid"), cards=$("cards");
+let cur = -1, seen = new Set(), busy = 0;
+$("tot").textContent = N;
+
+// รางสไลด์ และการ์ดภาพรวม
+S.forEach(([sec,head],i)=>{
+  const b=document.createElement("button");
+  b.className="tick"; b.type="button"; b.dataset.i=i;
+  b.setAttribute("aria-label",`สไลด์ ${i+1}: ${head}`);
+  b.onclick=()=>go(i);
+  rail.appendChild(b);
+  const li=document.createElement("li");
+  li.innerHTML=`<button class="card" type="button" data-i="${i}"><span class="ph"><img loading="lazy" src="${th(i)}" alt="" width="480" height="270"></span><span class="t"><b>${i+1}</b><span><span class="h">${head}</span><small>${sec}</small></span></span></button>`;
+  li.firstChild.onclick=()=>{go(i);toggleGrid(false)};
+  cards.appendChild(li);
+});
+const ticks=[...rail.children], cardBtns=[...cards.querySelectorAll(".card")];
+
+function preload(i){ if(i>=0&&i<N){ const im=new Image(); im.decoding="async"; im.src=src(i); } }
+
+function go(i, fromHash){
+  i=Math.max(0,Math.min(N-1,i));
+  if(i===cur) return;
+  const dir = cur<0 ? 0 : (i>cur?1:-1);
+  const old=$("img");
+  const im=new Image(); im.width=1920; im.height=1080; im.decoding="async";
+  im.alt=`สไลด์ ${i+1} จาก ${N}: ${S[i][0]} — ${S[i][1]}`;
+  im.src=src(i);
+  const token=++busy;
+  const swap=()=>{
+    if(token!==busy) return;
+    frame.style.setProperty("--dir",dir||1);
+    frame.querySelectorAll("img.leave").forEach(n=>n.remove());
+    if(dir){ old.classList.remove("enter"); old.classList.add("leave"); old.removeAttribute("id"); setTimeout(()=>old.remove(),400); }
+    else old.remove();
+    im.id="img"; if(dir) im.classList.add("enter");
+    frame.prepend(im);
+  };
+  (im.decode?im.decode():Promise.resolve()).then(swap,swap);
+
+  cur=i; seen.add(i);
+  $("cur").textContent=i+1;
+  $("where").innerHTML=`<b>${S[i][0]}</b>`;
+  ticks.forEach((t,k)=>{t.toggleAttribute("aria-current",false);t.classList.toggle("seen",seen.has(k)&&k!==i)});
+  ticks[i].setAttribute("aria-current","true");
+  cardBtns.forEach((c,k)=>c.setAttribute("aria-current",k===i?"true":"false"));
+  $("prev").disabled=i===0; $("next").disabled=i===N-1;
+  document.title=`${i+1}/${N} ${S[i][1]} · สไลด์นำเสนอ`;
+  if(!fromHash) history.replaceState(null,"",`#${i+1}`);
+  preload(i+1); preload(i-1);
+}
+
+$("prev").onclick=()=>go(cur-1);
+$("next").onclick=()=>go(cur+1);
+
+// คลิกบนสไลด์: ฝั่งซ้ายย้อนกลับ ที่เหลือไปต่อ
+frame.addEventListener("pointermove",e=>{ if(e.pointerType!=="mouse")return; const r=frame.getBoundingClientRect(),x=(e.clientX-r.left)/r.width; frame.dataset.zone=x<.3?"l":"r"; });
+frame.addEventListener("pointerleave",()=>delete frame.dataset.zone);
+frame.addEventListener("click",e=>{ if(Math.abs(swipe.dx)>12) return; const r=frame.getBoundingClientRect(); go(cur+((e.clientX-r.left)/r.width<.3?-1:1)); });
+
+// ปัดบนมือถือ
+const swipe={x:0,y:0,dx:0,on:false};
+frame.addEventListener("touchstart",e=>{const t=e.touches[0];Object.assign(swipe,{x:t.clientX,y:t.clientY,dx:0,on:true})},{passive:true});
+frame.addEventListener("touchmove",e=>{if(!swipe.on)return;const t=e.touches[0];swipe.dx=t.clientX-swipe.x;swipe.dy=t.clientY-swipe.y},{passive:true});
+frame.addEventListener("touchend",()=>{ if(swipe.on&&Math.abs(swipe.dx)>45&&Math.abs(swipe.dx)>Math.abs(swipe.dy||0)) go(cur+(swipe.dx<0?1:-1)); swipe.on=false; setTimeout(()=>swipe.dx=0,50); });
+
+// ภาพตัวอย่างเมื่อชี้รางสไลด์
+const peek=$("peek");
+rail.addEventListener("pointerover",e=>{
+  const t=e.target.closest(".tick"); if(!t||e.pointerType!=="mouse") return;
+  const i=+t.dataset.i, fr=app.querySelector(".foot").getBoundingClientRect(), tr=t.getBoundingClientRect();
+  $("peekImg").src=th(i); $("peekTxt").innerHTML=`<small>${i+1}</small>${S[i][1]}`;
+  const x=Math.max(8,Math.min(fr.width-228,tr.left+tr.width/2-fr.left-110));
+  peek.style.left=x+"px"; peek.classList.add("on");
+});
+rail.addEventListener("pointerleave",()=>peek.classList.remove("on"));
+
+// ภาพรวมทุกสไลด์
+let lastFocus=null;
+function toggleGrid(open){
+  open = open ?? !grid.classList.contains("open");
+  grid.classList.toggle("open",open);
+  grid.setAttribute("aria-hidden",!open);
+  app.inert=open;
+  $("gridBtn").setAttribute("aria-expanded",open);
+  if(open){ lastFocus=document.activeElement; setTimeout(()=>{cardBtns[cur].focus();cardBtns[cur].scrollIntoView({block:"center"})},30); }
+  else (lastFocus&&lastFocus.focus?lastFocus:$("gridBtn")).focus();
+}
+$("gridBtn").onclick=()=>toggleGrid(true);
+$("gridClose").onclick=()=>toggleGrid(false);
+
+// เต็มจอ
+const canFs = !!(document.documentElement.requestFullscreen);
+if(!canFs) $("fsBtn").hidden=true;
+function toggleFs(){ if(!canFs) return; document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{}); }
+$("fsBtn").onclick=toggleFs;
+document.addEventListener("fullscreenchange",()=>{
+  const on=!!document.fullscreenElement;
+  $("fsBtn").setAttribute("aria-label",on?"ออกจากเต็มจอ":"เต็มจอ");
+  $("fsIcon").innerHTML=on?'<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>':'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>';
+  wake();
+});
+let idleT;
+function wake(){ app.classList.remove("idle"); clearTimeout(idleT); if(document.fullscreenElement) idleT=setTimeout(()=>app.classList.add("idle"),2600); }
+document.addEventListener("pointermove",wake);
+
+// คีย์บอร์ด
+document.addEventListener("keydown",e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  const k=e.key;
+  if(grid.classList.contains("open")){
+    if(k==="Escape"||k==="g"||k==="G"){ e.preventDefault(); toggleGrid(false); }
+    return;
+  }
+  if(e.target.closest("a")&&(k===" "||k==="Enter")) return;
+  if(["ArrowRight","PageDown"," "].includes(k)||(k==="Enter"&&e.target===document.body)){ e.preventDefault(); go(cur+1); wake(); }
+  else if(["ArrowLeft","PageUp","Backspace"].includes(k)){ e.preventDefault(); go(cur-1); wake(); }
+  else if(k==="Home"){ e.preventDefault(); go(0); }
+  else if(k==="End"){ e.preventDefault(); go(N-1); }
+  else if(k==="f"||k==="F"){ toggleFs(); }
+  else if(k==="g"||k==="G"){ toggleGrid(true); }
+});
+
+// เปิดจากลิงก์ #เลขสไลด์ได้
+const fromHash=()=>{ const n=parseInt(location.hash.slice(1),10); return n>=1&&n<=N?n-1:0; };
+window.addEventListener("hashchange",()=>go(fromHash(),true));
+go(fromHash(),true);
+</script>
+</body>
+</html>
