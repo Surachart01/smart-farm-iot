@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+
+# รหัสลับ ห้ามขึ้น GitHub
+.env
+.env.*
+!.env.example
+.vercel/
+
+# ค่า Wi-Fi และ API key ของบอร์ด (ใช้ config.example.h เป็นแม่แบบ)
+firmware/smart_farm/config.h

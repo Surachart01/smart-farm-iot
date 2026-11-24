@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Farm Dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#eef1ec;--panel:#fbfcfa;--fg:#1b231e;--muted:#5a675f;--line:#d6ddd6;--accent:#2f7552;--ink:#fff;
+  --ok:#2f7552;--warn:#b7791f;--crit:#c0392b;--soil:#7a5230;--pred:#2a7fc0;--temp:#c0392b;--hum:#2a7fc0;--lux:#b7791f;
+  --f:"IBM Plex Sans Thai",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#111613;--panel:#171e1a;--fg:#e3eae5;--muted:#94a39a;--line:#2b352f;--accent:#73c296;--ink:#0d1a12;
+  --ok:#73c296;--warn:#e0b050;--crit:#ef6b5b;--soil:#c99a6b;--pred:#62b2ee;--temp:#ef6b5b;--hum:#62b2ee;--lux:#e0b050;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 var(--f);padding:20px max(16px,env(safe-area-inset-left)) 40px}
+.wrap{max-width:1200px;margin:0 auto;display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center}
+h1{margin:0;font-size:24px}
+h2{margin:0 0 10px;font-size:16px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--panel);border:1px solid var(--line)}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pill.ok i{background:var(--ok)} .pill.crit i{background:var(--crit)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile .k{font-size:13px;color:var(--muted)} .tile .v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.tile .v small{font-size:14px;font-weight:500;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.grid2{grid-template-columns:1fr}}
+.alerts{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.alerts li{padding:6px 10px;border-radius:6px;border-left:4px solid var(--warn);background:var(--bg)}
+.alerts li.crit{border-color:var(--crit)} .alerts li.none{border-color:var(--ok)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select,input{font:inherit;color:inherit}
+button{border:1px solid var(--line);background:var(--bg);padding:6px 12px;border-radius:7px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+form.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+label{display:grid;gap:2px;font-size:13px;color:var(--muted)}
+input,select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%}
+.chart{position:relative;height:240px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+td,th{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left}
+#ev td{overflow-wrap:anywhere;vertical-align:top} #ev td:nth-child(-n+2){white-space:nowrap}
+.muted{color:var(--muted);font-size:13px}
+#msg{min-height:1.4em}
+.ai-head{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ai-box{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}
+.ai-box tr.chg td{font-weight:600}
+.ai-box td.new{color:var(--accent)}
+[hidden]{display:none!important}
+.title-band{background:var(--accent);color:var(--ink);border-radius:12px;padding:clamp(16px,3vw,26px) clamp(18px,3vw,30px);display:flex;flex-wrap:wrap;gap:12px 20px;align-items:end;justify-content:space-between}
+.title-band .kicker{font-size:13px;font-weight:500;letter-spacing:.04em;opacity:.85}
+.title-band .project{margin:2px 0 0;font-size:clamp(22px,3.4vw,36px);line-height:1.3;font-weight:700;text-wrap:balance;max-width:30ch}
+.title-band a{color:inherit;font-size:14px;font-weight:600;border:1px solid currentColor;border-radius:7px;padding:6px 12px;text-decoration:none;white-space:nowrap}
+.title-band a:hover{background:color-mix(in srgb,currentColor 12%,transparent)}
+.title-band a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title-band">
+    <div>
+      <div class="kicker">สิ่งประดิษฐ์ · แดชบอร์ดติดตามและควบคุม</div>
+      <h1 class="project">ระบบฟาร์มอัจฉริยะ IoT และการจัดการฐานข้อมูลคลาวด์สำหรับธุรกิจเพาะเลี้ยงพืชอวบน้ำ</h1>
+    </div>
+    <a href="/3d/">ดูแบบจำลอง 3 มิติ</a>
+  </div>
+  <header>
+    <div>
+      <h2 style="margin:0;font-size:20px">ฟาร์มอัจฉริยะพืชอวบน้ำ</h2>
+      <div class="muted" id="seen">กำลังโหลด…</div>
+    </div>
+    <div class="row">
+      <span class="pill" id="online"><i></i><span>-</span></span>
+      <span class="pill"><span>ปั๊ม</span><b id="pumpState">-</b></span>
+      <span class="pill"><span>ไฟ LED</span><b id="ledState">-</b></span>
+    </div>
+  </header>
+
+  <div class="tiles">
+    <div class="tile"><div class="k">ความชื้นวัสดุปลูก</div><div class="v" id="t-soil">-</div></div>
+    <div class="tile"><div class="k">เกณฑ์รดน้ำ (เริ่ม–หยุด)</div><div class="v" id="t-rule">-</div></div>
+    <div class="tile"><div class="k">อุณหภูมิ</div><div class="v" id="t-temp">-</div></div>
+    <div class="tile"><div class="k">ความชื้นอากาศ</div><div class="v" id="t-hum">-</div></div>
+    <div class="tile"><div class="k">ความกดอากาศ</div><div class="v" id="t-pres">-</div></div>
+    <div class="tile"><div class="k">ความเข้มแสง</div><div class="v" id="t-lux">-</div></div>
+    <div class="tile"><div class="k">น้ำที่ใช้วันนี้</div><div class="v" id="t-water">-</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between"><h2>กราฟย้อนหลัง</h2>
+        <div class="seg row" role="group" aria-label="ช่วงเวลา">
+          <button data-h="6">6 ชม.</button><button data-h="24" aria-pressed="true">24 ชม.</button><button data-h="168">7 วัน</button>
+        </div></div>
+      <div class="chart"><canvas id="c1" aria-label="กราฟความชื้นวัสดุปลูก"></canvas></div>
+      <div class="chart"><canvas id="c2" aria-label="กราฟอุณหภูมิและความชื้นอากาศ"></canvas></div>
+      <div class="chart"><canvas id="c3" aria-label="กราฟความเข้มแสง"></canvas></div>
+    </div>
+    <div style="display:grid;gap:16px;align-content:start">
+      <div class="panel"><h2>การแจ้งเตือน</h2><ul class="alerts" id="alerts"></ul></div>
+      <div class="panel">
+        <h2>สั่งงาน</h2>
+        <div class="seg row" role="group" aria-label="โหมด" style="margin-top:10px">
+          <button data-mode="auto">ตามเกณฑ์</button><button data-mode="manual">สั่งเอง</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="primary" id="btnPump">ให้น้ำ 1 รอบ</button>
+          <button id="btnLedOn">เปิดไฟ</button><button id="btnLedOff">ปิดไฟ</button>
+        </div>
+        <div class="row" id="lockRow" style="margin-top:10px" hidden>
+          <button class="primary" id="btnUnlock" style="background:var(--crit);border-color:var(--crit)">ปลดล็อกการรดน้ำ</button>
+          <span class="muted">ตรวจตำแหน่งเซ็นเซอร์ความชื้นก่อนปลดล็อก</span>
+        </div>
+        <p class="muted" style="margin:8px 0 0">ตามเกณฑ์ = รดน้ำและเปิดไฟตามค่าใน "เกณฑ์ควบคุม" · ปุ่มไฟใช้ได้ในโหมดสั่งเอง · อุปกรณ์รับคำสั่งและอัปเดตค่าทุก 5 วินาที</p>
+        <div id="msg" class="muted" role="status"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row" style="justify-content:space-between"><h2>สรุปผลการทดลอง 14 วัน</h2>
+      <a href="/api/export.csv?days=14" class="muted">ดาวน์โหลดข้อมูล (CSV)</a></div>
+    <div class="tiles" id="stats"></div>
+    <p class="muted" style="margin:8px 0 0">ช่วงความชื้นที่เหมาะสม = ตั้งแต่ "เริ่มให้น้ำ" ถึง "แฉะเกินเกณฑ์"</p>
+  </div>
+
+  <div class="panel">
+    <div class="ai-head"><h2 style="margin:0">เกณฑ์ควบคุม</h2>
+      <button type="button" id="btnAi">ขอคำแนะนำจาก AI</button></div>
+    <form class="settings" id="sf">
+      <label>แห้งวิกฤต แจ้งเตือนเมื่อต่ำกว่า (%)<input name="ai_emergency" type="number" step="1"></label>
+      <label>เริ่มให้น้ำเมื่อต่ำกว่า (%)<input name="soil_on" type="number" step="1"></label>
+      <label>ให้น้ำจนถึง / ห้ามรดเมื่อเกิน (%)<input name="soil_off" type="number" step="1"></label>
+      <label>แฉะเกินเกณฑ์ เสี่ยงรากเน่า (%)<input name="wet_limit" type="number" step="1"></label>
+      <label>เปิดปั๊มต่อรอบ โหมดเกณฑ์ (วินาที)<input name="pump_pulse_s" type="number"></label>
+      <label>เปิดปั๊มรวมได้ไม่เกินต่อวัน (วินาที)<input name="max_pump_s_day" type="number"></label>
+      <label>เปิดไฟเมื่อแสงต่ำกว่า (lux)<input name="lux_on" type="number" step="100"></label>
+      <label>ปิดไฟเมื่อแสงเกิน (lux)<input name="lux_off" type="number" step="100"></label>
+      <label>กลางวันเริ่ม (ชม.)<input name="day_start" type="number"></label>
+      <label>กลางวันสิ้นสุด (ชม.)<input name="day_end" type="number"></label>
+      <label>เตือนเมื่ออุณหภูมิเกิน (°C)<input name="alert_temp" type="number"></label>
+      <label>เตือนเมื่อความชื้นอากาศเกิน (%)<input name="alert_humidity" type="number"></label>
+      <label>ป้องกัน: รดอัตโนมัติรวมเกิน (วินาที)<input name="guard_pump_s" type="number"></label>
+      <label>...แล้วความชื้นขึ้นไม่ถึง (%) ให้หยุด<input name="guard_min_rise" type="number" step="0.5"></label>
+      <div class="row" style="align-self:end;flex-wrap:wrap;gap:8px"><button class="primary" type="submit">บันทึกเกณฑ์</button>
+        <button type="button" id="sfReset">ยกเลิกที่แก้</button></div>
+      <p id="sfMsg" role="status" class="muted" style="grid-column:1/-1;margin:0">ลำดับที่ต้องเป็น: แห้งวิกฤต &lt; เริ่มให้น้ำ &lt; ให้น้ำจนถึง ≤ แฉะเกินเกณฑ์ และ เปิดไฟ &lt; ปิดไฟ</p>
+    </form>
+    <div class="ai-box" id="aiBox" aria-live="polite">
+      <div class="muted" id="aiMeta">AI (Gemini Flash-Lite) วิเคราะห์ข้อมูลย้อนหลังแล้วแนะนำค่าเกณฑ์การให้น้ำและการให้แสงที่เหมาะกับสถานการณ์ตอนนี้ AI ไม่ได้เปลี่ยนค่าเอง ผู้ใช้เป็นคนตัดสินใจ</div>
+      <div id="aiResult" hidden>
+        <p id="aiSummary" style="margin:0 0 8px"></p>
+        <div style="overflow-x:auto"><table><thead><tr><th><input type="checkbox" id="aiAll" aria-label="เลือกทุกค่า" style="width:auto"></th><th>เกณฑ์</th><th>ค่าปัจจุบัน</th><th>AI แนะนำ</th><th>เหตุผล</th></tr></thead><tbody id="aiRows"></tbody></table></div>
+        <p class="muted" id="aiNotes" style="margin:6px 0 0"></p>
+        <div class="row" style="margin-top:8px"><button type="button" class="primary" id="btnAiFill">นำค่าที่เลือกไปใส่ในฟอร์ม</button>
+          <span class="muted">ติ๊กเลือกเฉพาะค่าที่ต้องการ (ค่าที่ AI แนะนำให้เปลี่ยนจะถูกเลือกไว้ก่อน) ระบบยังไม่เปลี่ยนค่าจนกว่าจะกด "บันทึกเกณฑ์"</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>ประวัติการทำงาน</h2>
+    <div style="overflow-x:auto"><table><thead><tr><th>เวลา</th><th>เหตุการณ์</th><th>รายละเอียด</th></tr></thead><tbody id="ev"></tbody></table></div>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let hours=24, charts={}, settings={};
+try{ localStorage.removeItem('sf_key'); }catch(e){}      // เวอร์ชันก่อนเก็บรหัสไว้ในเบราว์เซอร์ ไม่ใช้แล้ว
+const fmt=(v,d=1)=>v==null?'-':Number(v).toLocaleString('th-TH',{maximumFractionDigits:d,minimumFractionDigits:d});
+const tm=t=>new Date(t).toLocaleString('th-TH',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'});
+
+async function api(path,opt={}){
+  // หน้าเว็บสั่งงานได้โดยไม่ต้องใส่รหัส (รหัส API_KEY ใช้เฉพาะระหว่างบอร์ดกับเซิร์ฟเวอร์ และไม่ฝังในหน้าเว็บ)
+  const r=await fetch(path,{...opt,headers:{'Content-Type':'application/json',...(opt.headers||{})}});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
+  return j;
+}
+function say(t,bad){ $('#msg').textContent=t; $('#msg').style.color=bad?css('--crit'):''; }
+
+let lastS=null;
+async function loadStatus(){ lastS=await api('/api/status'); render(lastS); }
+// ทุก 5 วินาที: ดึงเฉพาะค่าสด (คำขอเบา) แล้ววาดการ์ดใหม่ ถ้าโหมดหรือคำสั่งค้างเปลี่ยนให้โหลดสถานะเต็ม
+async function loadLive(){
+  if(!lastS) return loadStatus();
+  const l=await api('/api/live');
+  if(l.mode!==lastS.settings.mode || !!l.pending_command!==!!lastS.pending_command || (l.live?.water_lock||0)!==(lastS.live?.water_lock||0)) return loadStatus();
+  lastS.live=l.live; lastS.online=l.online; render(lastS);
+}
+function render(s){
+  settings=s.settings; const R=s.latest||{};
+  // ค่าสด (ทุก 5 วินาที) ใหม่กว่าข้อมูลที่บันทึกทุก 5 นาที -> ใช้ค่าสดแสดงบนการ์ด
+  const isLive=s.live&&(!R.timestamp||new Date(s.live.timestamp)>new Date(R.timestamp));
+  const L=isLive?{...R,...Object.fromEntries(Object.entries(s.live).filter(([,v])=>v!=null))}:R;
+  const on=$('#online'); on.className='pill '+(s.online?'ok':'crit'); on.lastElementChild.textContent=s.online?'ออนไลน์':'ออฟไลน์';
+  const tsec=t=>new Date(t).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  $('#seen').textContent=L.timestamp?`${isLive?'ค่าสด':'ข้อมูลล่าสุด'} ${tsec(L.timestamp)} · บันทึกลงฐานข้อมูล ${R.timestamp?tm(R.timestamp):'-'} (ทุก 5 นาที) · โหมด ${({auto:'ตามเกณฑ์',manual:'สั่งเอง'})[s.settings.mode]}`:'ยังไม่มีข้อมูล';
+  $('#pumpState').textContent=isLive?(L.pump?'กำลังรดน้ำ':'ปิด'):(R.pump_s>0?'รดในรอบนี้':'ปิด'); $('#ledState').textContent=L.led?'เปิด':'ปิด';
+  if(L.water_lock) $('#pumpState').textContent='ล็อก (หยุดรดอัตโนมัติ)';
+  $('#lockRow').hidden=!L.water_lock;
+  $('#t-soil').innerHTML=`${fmt(L.soil,0)}<small> %</small>`;
+  $('#t-rule').innerHTML=`${fmt(s.settings.soil_on,0)}–${fmt(s.settings.soil_off,0)}<small> %</small>`;
+  $('#t-temp').innerHTML=`${fmt(L.temperature)}<small> °C</small>`; $('#t-hum').innerHTML=`${fmt(L.humidity,0)}<small> %</small>`;
+  $('#t-pres').innerHTML=`${fmt(L.pressure,1)}<small> hPa</small>`;
+  $('#t-lux').innerHTML=`${fmt(L.lux,0)}<small> lux</small>`; $('#t-water').innerHTML=`${fmt(s.water_today_l,2)}<small> ลิตร</small>`;
+  aiReady=s.ai.ready; if(s.ai.last && s.ai.last.id!==aiShownId) renderAi(s.ai.last);
+  const ul=$('#alerts'); ul.innerHTML='';
+  (s.alerts.length?s.alerts:[{level:'none',text:'ไม่มีการแจ้งเตือน'}]).forEach(a=>{const li=document.createElement('li'); li.className=a.level; li.textContent=a.text; ul.appendChild(li);});
+  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===s.settings.mode));
+  const manual=s.settings.mode==='manual'; $('#btnLedOn').disabled=!manual; $('#btnLedOff').disabled=!manual;
+  if(!sfDirty) fillForm();
+}
+
+function mk(id,sets,yTitle){
+  const g=css('--line'), t=css('--muted');
+  return new Chart($(id),{type:'line',data:{labels:[],datasets:sets.map(s=>({label:s.l,data:[],borderColor:css(s.c),backgroundColor:css(s.c),borderWidth:1.6,pointRadius:0,spanGaps:false,borderDash:s.d||[],yAxisID:s.y||'y',tension:.2}))},
+    options:{animation:false,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{color:t,boxWidth:12}}},
+      scales:{x:{ticks:{color:t,maxTicksLimit:8,maxRotation:0},grid:{color:g}},
+        y:{title:{display:true,text:yTitle[0],color:t},ticks:{color:t},grid:{color:g}},
+        ...(yTitle[1]?{y2:{position:'right',title:{display:true,text:yTitle[1],color:t},ticks:{color:t},grid:{display:false}}}:{})}}});
+}
+function initCharts(){
+  charts.c1=mk('#c1',[{l:'ความชื้นวัสดุปลูก (%)',c:'--soil'}],['%']);
+  charts.c2=mk('#c2',[{l:'อุณหภูมิ (°C)',c:'--temp'},{l:'ความชื้นอากาศ (%)',c:'--hum',y:'y2'}],['°C','%']);
+  charts.c3=mk('#c3',[{l:'ความเข้มแสง (lux)',c:'--lux'}],['lux']);
+}
+async function loadHistory(){
+  const from=new Date(Date.now()-hours*3600e3).toISOString();
+  const rows=await api(`/api/readings?from=${encodeURIComponent(from)}&limit=20000`);
+  const step=Math.max(1,Math.ceil(rows.length/600)); const r=rows.filter((_,i)=>i%step===0);
+  const lab=r.map(x=>new Date(x.timestamp).toLocaleString('th-TH',hours>24?{day:'numeric',month:'short',hour:'2-digit'}:{hour:'2-digit',minute:'2-digit'}));
+  const set=(c,arr)=>{c.data.labels=lab; arr.forEach((a,i)=>c.data.datasets[i].data=a); c.update();};
+  set(charts.c1,[r.map(x=>x.soil)]);
+  set(charts.c2,[r.map(x=>x.temperature),r.map(x=>x.humidity)]);
+  set(charts.c3,[r.map(x=>x.lux)]);
+}
+async function loadStats(){
+  const t=await api('/api/stats?days=14'); const el=$('#stats'); el.innerHTML='';
+  const P=v=>v==null?'-':fmt(v,1);
+  [['ส่งข้อมูลขึ้นคลาวด์สำเร็จ',`${P(t.upload.success_pct)}<small> % (${t.upload.received}/${t.upload.expected})</small>`],
+   ['ความชื้นอยู่ในช่วงเหมาะสม',`${P(t.soil.in_range_pct)}<small> %</small>`],
+   ['แฉะเกินเกณฑ์',`${P(t.soil.over_wet_pct)}<small> %</small>`],
+   ['น้ำที่ใช้สะสม',`${fmt(t.water.total_l,2)}<small> ลิตร</small>`],
+   ['ขอคำแนะนำจาก AI',`${t.ai.suggestions}<small> ครั้ง</small>`]]
+  .forEach(([k,v])=>{const d=document.createElement('div'); d.className='tile'; d.innerHTML=`<div class="k">${k}</div><div class="v">${v}</div>`; el.appendChild(d);});
+}
+const EVN={ai_suggest:'AI แนะนำค่าเกณฑ์',water_lock:'หยุดรดอัตโนมัติ (ความชื้นไม่ขึ้น)',water_unlock:'ปลดล็อกการรดน้ำ',manual_pump_unlock:'สั่งปลดล็อกจากเว็บ',ai_decision:'AI ตัดสินใจ',pump_on:'ให้น้ำ',sensor_error:'เซ็นเซอร์ผิดพลาด',settings_changed:'แก้เกณฑ์',manual_pump_pulse:'สั่งให้น้ำจากเว็บ',manual_led_on:'สั่งเปิดไฟจากเว็บ',manual_led_off:'สั่งปิดไฟจากเว็บ'};
+// ประวัติการแก้เกณฑ์: แสดงเป็นภาษาไทย "ชื่อค่า เดิม → ใหม่"
+const SL={mode:'โหมด',ai_emergency:'แห้งวิกฤต',soil_on:'เริ่มให้น้ำ',soil_off:'ให้น้ำจนถึง',wet_limit:'แฉะเกินเกณฑ์',pump_pulse_s:'ปั๊มต่อรอบ',
+  max_pump_s_day:'ปั๊มรวมต่อวัน',flow_ml_s:'อัตราการไหล',lux_on:'เปิดไฟเมื่อแสงต่ำกว่า',lux_off:'ปิดไฟเมื่อแสงเกิน',day_start:'กลางวันเริ่ม',
+  day_end:'กลางวันสิ้นสุด',alert_temp:'เตือนอุณหภูมิ',alert_humidity:'เตือนความชื้นอากาศ',guard_pump_s:'ป้องกัน: ปั๊มรวม',guard_min_rise:'ป้องกัน: ความชื้นต้องขึ้น'};
+const MODEN={auto:'ตามเกณฑ์',manual:'สั่งเอง',ai:'AI (เดิม)'};
+function settingsText(d){
+  let o; try{ o=JSON.parse(d); }catch(e){ return d||''; }
+  const v=(k,x)=>k==='mode'?(MODEN[x]||x):x;
+  const parts=Object.entries(o).map(([k,x])=>Array.isArray(x)?`${SL[k]||k} ${v(k,x[0])} → ${v(k,x[1])}`:`${SL[k]||k} ${v(k,x)}`);
+  return parts.length>4&&!Object.values(o).some(Array.isArray)?`บันทึกเกณฑ์ทั้งชุด (${parts.length} ค่า)`:parts.join(' · ');
+}
+async function loadEvents(){
+  const ev=await api('/api/events?limit=30'); const tb=$('#ev'); tb.innerHTML='';
+  ev.forEach(e=>{const tr=document.createElement('tr');
+    [tm(e.timestamp),EVN[e.type]||e.type,e.type==='pump_on'?`${e.source==='manual'?'สั่งเอง':'ตามเกณฑ์'} · ${fmt(e.pump_s,1)} วินาที${e.water_ml!=null?` · ${fmt(e.water_ml,0)} มล.`:''}${e.soil!=null?` · ความชื้น ${fmt(e.soil,0)}%`:''}`
+      :e.type==='settings_changed'?settingsText(e.detail):(e.source==='web'&&!e.detail?'จากหน้าเว็บ':(e.detail||e.source||''))].forEach(t=>{const td=document.createElement('td'); td.textContent=t; tr.appendChild(td);});
+    tb.appendChild(tr);});
+}
+async function refresh(){ try{ await loadStatus(); await loadHistory(); await loadEvents(); await loadStats(); }catch(e){ say('โหลดข้อมูลไม่ได้: '+e.message,true); } }
+
+document.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{hours=+b.dataset.h; document.querySelectorAll('[data-h]').forEach(x=>x.setAttribute('aria-pressed',x===b)); loadHistory();});
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=async()=>{try{await api('/api/settings',{method:'PUT',body:JSON.stringify({mode:b.dataset.mode})}); say('เปลี่ยนโหมดแล้ว'); refresh();}catch(e){say(e.message,true);}});
+const ctl=(device,action,txt)=>async()=>{try{await api('/api/control',{method:'POST',body:JSON.stringify({device,action})}); say(txt+' — อุปกรณ์จะทำภายใน 5 วินาที'); loadEvents(); loadStatus();}catch(e){say(e.message,true);}};
+// บอร์ดไม่รดเมื่อความชื้นถึงเกณฑ์ "ให้น้ำจนถึง" (กันรากเน่า) จึงบอกผู้ใช้ตรงนี้แทนการส่งคำสั่งที่จะถูกปฏิเสธเงียบ ๆ
+const pumpSend=ctl('pump','pulse','ส่งคำสั่งให้น้ำแล้ว');
+$('#btnPump').onclick=()=>{
+  const soil=lastS?.live?.soil ?? lastS?.latest?.soil, off=lastS?.settings?.soil_off;
+  if(soil!=null && off!=null && soil>=off) return say(`ไม่ได้สั่งให้น้ำ: ความชื้นตอนนี้ ${fmt(soil,0)}% ถึงเกณฑ์ "ให้น้ำจนถึง" (${off}%) แล้ว บอร์ดจะไม่รดเพื่อกันรากเน่า ถ้าต้องการรด ให้ปรับเกณฑ์นี้ก่อน`,true);
+  return pumpSend();
+};
+$('#btnLedOn').onclick=ctl('led','on','ส่งคำสั่งเปิดไฟแล้ว');
+$('#btnLedOff').onclick=ctl('led','off','ส่งคำสั่งปิดไฟแล้ว');
+$('#btnUnlock').onclick=ctl('pump','unlock','ส่งคำสั่งปลดล็อกแล้ว');
+// ฟอร์มเกณฑ์: ไม่เขียนทับค่าที่กำลังแก้ (เดิมรีเฟรชทุก 1 นาทีแล้วค่าที่ยังไม่บันทึกหาย) และแสดงผลบันทึกข้างปุ่ม
+let sfDirty=false;
+function fillForm(){ for(const el of $('#sf').elements) if(el.name && settings[el.name]!=null){ el.value=settings[el.name]; el.style.outline=''; } }
+function sfSay(t,bad){ $('#sfMsg').textContent=t; $('#sfMsg').style.color=bad?css('--crit'):css('--ok')||''; }
+$('#sf').addEventListener('input',()=>{ sfDirty=true; sfSay('มีค่าที่ยังไม่ได้บันทึก'); });
+$('#sfReset').onclick=()=>{ sfDirty=false; fillForm(); sfSay('ยกเลิกแล้ว ใช้ค่าที่บันทึกไว้'); };
+function sfCheck(b){
+  const N={ai_emergency:'แห้งวิกฤต',soil_on:'เริ่มให้น้ำ',soil_off:'ให้น้ำจนถึง',wet_limit:'แฉะเกินเกณฑ์',lux_on:'เปิดไฟเมื่อแสงต่ำกว่า',lux_off:'ปิดไฟเมื่อแสงเกิน',day_start:'กลางวันเริ่ม',day_end:'กลางวันสิ้นสุด'};
+  const bad=[];
+  for(const [k,v] of Object.entries(b)) if(!Number.isFinite(v)) bad.push([k,'ยังไม่ได้ใส่ค่า']);
+  const lt=(a,c,eq)=>{ if(eq?b[a]>b[c]:b[a]>=b[c]) bad.push([a,`${N[a]} (${b[a]}) ต้อง${eq?'ไม่เกิน':'น้อยกว่า'} ${N[c]} (${b[c]})`],[c,'']); };
+  lt('ai_emergency','soil_on'); lt('soil_on','soil_off'); lt('soil_off','wet_limit',true); lt('lux_on','lux_off'); lt('day_start','day_end');
+  return bad;
+}
+$('#sf').onsubmit=async e=>{e.preventDefault(); const body={}; for(const el of e.target.elements) if(el.name){ body[el.name]=el.value===''?NaN:Number(el.value); el.style.outline=''; }
+  const bad=sfCheck(body);
+  if(bad.length){ for(const [k] of bad){ const el=$('#sf').elements[k]; if(el) el.style.outline='2px solid '+css('--crit'); }
+    sfSay('บันทึกไม่ได้: '+bad.map(x=>x[1]).filter(Boolean).join(' · '),true); return; }
+  try{ await api('/api/settings',{method:'PUT',body:JSON.stringify(body)}); sfDirty=false; sfSay('บันทึกเกณฑ์แล้ว อุปกรณ์จะใช้ค่าใหม่ภายใน 5 วินาที'); refresh(); }
+  catch(err){ sfSay('บันทึกไม่ได้: '+err.message,true); }};
+
+// ---------------- AI แนะนำค่าเกณฑ์ ----------------
+const AIK={soil_on:'เริ่มให้น้ำเมื่อต่ำกว่า (%)',soil_off:'ให้น้ำจนถึง (%)',pump_pulse_s:'เปิดปั๊มต่อรอบ (วินาที)',max_pump_s_day:'เปิดปั๊มรวมต่อวัน (วินาที)',
+  lux_on:'เปิดไฟเมื่อแสงต่ำกว่า (lux)',lux_off:'ปิดไฟเมื่อแสงเกิน (lux)',day_start:'กลางวันเริ่ม (ชม.)',day_end:'กลางวันสิ้นสุด (ชม.)'};
+let aiShownId=null, aiLast=null, aiReady=true;
+function renderAi(A){
+  aiShownId=A.id||null; aiLast=A;
+  if(A.error){ $('#aiMeta').textContent=`${tm(A.timestamp)} · ขอคำแนะนำไม่สำเร็จ: ${A.error}`; $('#aiResult').hidden=true; return; }
+  const n=Object.keys(AIK).filter(k=>A.recommendations?.[k]?.changed).length;
+  $('#aiMeta').textContent=`คำแนะนำเมื่อ ${tm(A.timestamp)} · ${A.model} · ใช้เวลา ${fmt((A.latency_ms||0)/1000,1)} วินาที · แนะนำให้เปลี่ยน ${n} ค่า`;
+  $('#aiSummary').textContent=A.summary||'';
+  const tb=$('#aiRows'); tb.innerHTML='';
+  for(const k of Object.keys(AIK)){ const r=A.recommendations?.[k]; if(!r) continue;
+    const tr=document.createElement('tr'); if(r.changed) tr.className='chg';
+    const tdc=document.createElement('td'), cb=document.createElement('input');
+    cb.type='checkbox'; cb.className='aiPick'; cb.dataset.k=k; cb.checked=!!r.changed; cb.style.width='auto';
+    cb.setAttribute('aria-label','ใช้ค่า '+AIK[k]); cb.onchange=aiPickSync; tdc.appendChild(cb); tr.appendChild(tdc);
+    [[AIK[k]],[settings[k]!=null?fmt(settings[k],0):'-'],[fmt(r.value,0),r.changed?'new':''],[r.changed?r.reason:`คงเดิม — ${r.reason}`]].forEach(([t,c])=>{const td=document.createElement('td'); td.textContent=t; if(c) td.className=c; tr.appendChild(td);});
+    tb.appendChild(tr);}
+  $('#aiNotes').textContent=(A.notes||[]).length?'ระบบตรวจคำตอบ AI: '+A.notes.join(' · '):'';
+  $('#aiResult').hidden=false; aiPickSync();
+}
+// ปุ่มบอกจำนวนค่าที่เลือก และช่องเลือกทั้งหมดตามสถานะ
+function aiPickSync(){
+  const all=[...document.querySelectorAll('.aiPick')], n=all.filter(c=>c.checked).length;
+  $('#btnAiFill').textContent=`นำค่าที่เลือกไปใส่ในฟอร์ม (${n} ค่า)`; $('#btnAiFill').disabled=n===0;
+  $('#aiAll').checked=n>0&&n===all.length; $('#aiAll').indeterminate=n>0&&n<all.length;
+}
+$('#aiAll').onchange=e=>{ document.querySelectorAll('.aiPick').forEach(c=>c.checked=e.target.checked); aiPickSync(); };
+$('#btnAi').onclick=async()=>{
+  const b=$('#btnAi'); b.disabled=true; b.textContent='AI กำลังวิเคราะห์ข้อมูล…';
+  $('#aiMeta').textContent='กำลังส่งข้อมูลย้อนหลังให้ AI วิเคราะห์ (ประมาณ 10–30 วินาที)';
+  try{ renderAi(await api('/api/ai/suggest',{method:'POST',body:'{}'})); loadEvents(); }
+  catch(e){ $('#aiMeta').textContent=e.message; }
+  finally{ b.disabled=false; b.textContent='ขอคำแนะนำจาก AI'; }
+};
+$('#btnAiFill').onclick=()=>{
+  if(!aiLast?.recommendations) return;
+  const picked=[...document.querySelectorAll('.aiPick:checked')].map(c=>c.dataset.k);
+  if(!picked.length){ sfSay('ยังไม่ได้เลือกค่าที่จะใช้',true); return; }
+  for(const k of picked){ const el=$('#sf').elements[k], r=aiLast.recommendations[k];
+    if(el&&r){ el.value=r.value; el.style.outline='2px solid '+css('--accent'); } }
+  sfDirty=true; sfSay(`ใส่ค่าที่เลือก ${picked.length} ค่าลงฟอร์มแล้ว (ช่องที่มีกรอบสี) ค่าอื่นยังเหมือนเดิม ตรวจดูแล้วกด "บันทึกเกณฑ์" หรือกด "ยกเลิกที่แก้"`);
+  $('#sf').scrollIntoView({behavior:'smooth',block:'center'});
+};
+
+// การ์ดค่าสดอัปเดตทุก 5 วินาที กราฟ/ประวัติ/สถิติทุก 1 นาที (หยุดเมื่อไม่ได้เปิดดูแท็บนี้ เพื่อประหยัดโควตา Vercel)
+initCharts(); refresh();
+setInterval(()=>{ if(!document.hidden) loadLive().catch(e=>say('โหลดข้อมูลไม่ได้: '+e.message,true)); },5000);
+setInterval(()=>{ if(!document.hidden) refresh(); },60000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refresh(); });
+</script>
+</body>
+</html>
